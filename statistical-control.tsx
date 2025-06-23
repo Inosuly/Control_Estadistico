@@ -484,8 +484,13 @@ export default function Component() {
 
   // Calcular tabla de frecuencias agrupadas
   const groupedFrequencyTable = useMemo((): GroupedFrequencyData[] => {
-    if (!Array.isArray(processedData) || processedData.length === 0 || !groupedStats || dataType !== "grouped")
-      return []
+  if (
+    !Array.isArray(processedData) || 
+    processedData.length === 0 || 
+    !groupedStats || 
+    dataType !== "grouped" ||
+    groupedStats.numberOfClasses <= 0 // Añadir esta validación
+  ) return [];
 
     const { minValue, maxValue, numberOfClasses } = groupedStats
     const total = processedData.length
