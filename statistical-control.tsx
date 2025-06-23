@@ -1022,22 +1022,14 @@ export default function Component() {
                   </CardHeader>
                   <CardContent className="p-4 sm:p-6">
                     {/* Summary Statistics */}
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+                    <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-6">
                       <div className="text-center p-3 sm:p-4 bg-blue-50 rounded-lg">
-                        <div className="text-lg sm:text-2xl font-bold text-blue-600">{xrData.xBarBar.toFixed(4)}</div>
+                        <div className="text-lg sm:text-2xl font-bold text-blue-600">{xrData.xBarBar.toFixed(5)}</div>
                         <div className="text-xs sm:text-sm text-gray-600">Media de Medias (X̄̄)</div>
                       </div>
                       <div className="text-center p-3 sm:p-4 bg-green-50 rounded-lg">
-                        <div className="text-lg sm:text-2xl font-bold text-green-600">{xrData.rBar.toFixed(4)}</div>
+                        <div className="text-lg sm:text-2xl font-bold text-green-600">{xrData.rBar.toFixed(5)}</div>
                         <div className="text-xs sm:text-sm text-gray-600">Media de Rangos (R̄)</div>
-                      </div>
-                      <div className="text-center p-3 sm:p-4 bg-purple-50 rounded-lg">
-                        <div className="text-lg sm:text-2xl font-bold text-purple-600">{xrData.sigmaX.toFixed(4)}</div>
-                        <div className="text-xs sm:text-sm text-gray-600">Sigma X</div>
-                      </div>
-                      <div className="text-center p-3 sm:p-4 bg-orange-50 rounded-lg">
-                        <div className="text-lg sm:text-2xl font-bold text-orange-600">{xrData.subgroups.length}</div>
-                        <div className="text-xs sm:text-sm text-gray-600">Subgrupos</div>
                       </div>
                     </div>
 
@@ -1065,20 +1057,20 @@ export default function Component() {
                               <TableCell className="font-medium text-xs sm:text-sm">{index + 1}</TableCell>
                               {/* X Chart Data */}
                               <TableCell className="text-xs sm:text-sm bg-blue-50">
-                                {xrData.xBar[index].toFixed(4)}
+                                {xrData.xBar[index].toFixed(5)}
                               </TableCell>
                               <TableCell className="text-xs sm:text-sm bg-blue-50">
-                                {xrData.xBarBar.toFixed(4)}
+                                {xrData.xBarBar.toFixed(5)}
                               </TableCell>
-                              <TableCell className="text-xs sm:text-sm bg-blue-50">{xrData.uclX.toFixed(4)}</TableCell>
-                              <TableCell className="text-xs sm:text-sm bg-blue-50">{xrData.lclX.toFixed(4)}</TableCell>
+                              <TableCell className="text-xs sm:text-sm bg-blue-50">{xrData.uclX.toFixed(5)}</TableCell>
+                              <TableCell className="text-xs sm:text-sm bg-blue-50">{xrData.lclX.toFixed(5)}</TableCell>
                               {/* R Chart Data */}
                               <TableCell className="text-xs sm:text-sm bg-green-50">
-                                {xrData.rValues[index].toFixed(4)}
+                                {xrData.rValues[index].toFixed(5)}
                               </TableCell>
-                              <TableCell className="text-xs sm:text-sm bg-green-50">{xrData.rBar.toFixed(4)}</TableCell>
-                              <TableCell className="text-xs sm:text-sm bg-green-50">{xrData.uclR.toFixed(4)}</TableCell>
-                              <TableCell className="text-xs sm:text-sm bg-green-50">{xrData.lclR.toFixed(4)}</TableCell>
+                              <TableCell className="text-xs sm:text-sm bg-green-50">{xrData.rBar.toFixed(5)}</TableCell>
+                              <TableCell className="text-xs sm:text-sm bg-green-50">{xrData.uclR.toFixed(5)}</TableCell>
+                              <TableCell className="text-xs sm:text-sm bg-green-50">{xrData.lclR.toFixed(5)}</TableCell>
                             </TableRow>
                           ))}
                         </TableBody>
@@ -1406,10 +1398,10 @@ export default function Component() {
                               <LineChart
                                 data={xrData.xBar.map((val, index) => ({
                                   subgroup: index + 1,
-                                  value: val,
-                                  ucl: xrData.uclX,
-                                  lcl: xrData.lclX,
-                                  center: xrData.xBarBar,
+                                  value: Number(val.toFixed(2)),
+                                  LCS: Number(xrData.uclX.toFixed(2)),
+                                  LCI: Number(xrData.lclX.toFixed(2)),
+                                  LC: Number(xrData.xBarBar.toFixed(2)),
                                 }))}
                               >
                                 <CartesianGrid strokeDasharray="3 3" />
@@ -1421,22 +1413,22 @@ export default function Component() {
                                       const xBarMax = Math.max(...xrData.xBar, xrData.uclX)
                                       const xBarRange = xBarMax - xBarMin
                                       const xBarMargin = Math.max(xBarRange * 0.1, 1)
-                                      return xBarMin - xBarMargin
+                                      return Number((xBarMin - xBarMargin).toFixed(2))
                                     },
                                     (dataMax) => {
                                       const xBarMin = Math.min(...xrData.xBar, xrData.lclX)
                                       const xBarMax = Math.max(...xrData.xBar, xrData.uclX)
                                       const xBarRange = xBarMax - xBarMin
                                       const xBarMargin = Math.max(xBarRange * 0.1, 1)
-                                      return xBarMax + xBarMargin
+                                      return Number((xBarMax + xBarMargin).toFixed(2))
                                     },
                                   ]}
                                 />
-                                <Tooltip />
+                                <Tooltip formatter={(value, name) => [Number(value).toFixed(2), name]} />
                                 <Line type="monotone" dataKey="value" stroke="#2563eb" strokeWidth={2} />
-                                <Line type="monotone" dataKey="ucl" stroke="#dc2626" strokeDasharray="5 5" />
-                                <Line type="monotone" dataKey="lcl" stroke="#dc2626" strokeDasharray="5 5" />
-                                <Line type="monotone" dataKey="center" stroke="#16a34a" strokeDasharray="3 3" />
+                                <Line type="monotone" dataKey="LCS" stroke="#dc2626" strokeDasharray="5 5" />
+                                <Line type="monotone" dataKey="LCI" stroke="#dc2626" strokeDasharray="5 5" />
+                                <Line type="monotone" dataKey="LC" stroke="#16a34a" strokeDasharray="3 3" />
                               </LineChart>
                             </ResponsiveContainer>
                           </div>
@@ -1448,10 +1440,10 @@ export default function Component() {
                               <LineChart
                                 data={xrData.rValues.map((val, index) => ({
                                   subgroup: index + 1,
-                                  value: val,
-                                  ucl: xrData.uclR,
-                                  lcl: xrData.lclR,
-                                  center: xrData.rBar,
+                                  value: Number(val.toFixed(2)),
+                                  LCS: Number(xrData.uclR.toFixed(2)),
+                                  LCI: Number(xrData.lclR.toFixed(2)),
+                                  LC: Number(xrData.rBar.toFixed(2)),
                                 }))}
                               >
                                 <CartesianGrid strokeDasharray="3 3" />
@@ -1463,22 +1455,22 @@ export default function Component() {
                                       const rMax = Math.max(...xrData.rValues, xrData.uclR)
                                       const rRange = rMax - rMin
                                       const rMargin = Math.max(rRange * 0.1, 1)
-                                      return rMin - rMargin
+                                      return Number((rMin - rMargin).toFixed(2))
                                     },
                                     (dataMax) => {
                                       const rMin = Math.min(...xrData.rValues, xrData.lclR)
                                       const rMax = Math.max(...xrData.rValues, xrData.uclR)
                                       const rRange = rMax - rMin
                                       const rMargin = Math.max(rRange * 0.1, 1)
-                                      return rMax + rMargin
+                                      return Number((rMax + rMargin).toFixed(2))
                                     },
                                   ]}
                                 />
-                                <Tooltip />
+                                <Tooltip formatter={(value, name) => [Number(value).toFixed(2), name]} />
                                 <Line type="monotone" dataKey="value" stroke="#2563eb" strokeWidth={2} />
-                                <Line type="monotone" dataKey="ucl" stroke="#dc2626" strokeDasharray="5 5" />
-                                <Line type="monotone" dataKey="lcl" stroke="#dc2626" strokeDasharray="5 5" />
-                                <Line type="monotone" dataKey="center" stroke="#16a34a" strokeDasharray="3 3" />
+                                <Line type="monotone" dataKey="LCS" stroke="#dc2626" strokeDasharray="5 5" />
+                                <Line type="monotone" dataKey="LCI" stroke="#dc2626" strokeDasharray="5 5" />
+                                <Line type="monotone" dataKey="LC" stroke="#16a34a" strokeDasharray="3 3" />
                               </LineChart>
                             </ResponsiveContainer>
                           </div>
@@ -1587,10 +1579,10 @@ export default function Component() {
                             <LineChart
                               data={xrData.xBar.map((val, index) => ({
                                 subgroup: index + 1,
-                                value: val,
-                                ucl: xrData.uclX,
-                                lcl: xrData.lclX,
-                                center: xrData.xBarBar,
+                                value: Number(val.toFixed(2)),
+                                LCS: Number(xrData.uclX.toFixed(2)),
+                                LCI: Number(xrData.lclX.toFixed(2)),
+                                LC: Number(xrData.xBarBar.toFixed(2)),
                               }))}
                             >
                               <CartesianGrid strokeDasharray="3 3" />
@@ -1602,32 +1594,32 @@ export default function Component() {
                                     const xBarMax = Math.max(...xrData.xBar, xrData.uclX)
                                     const xBarRange = xBarMax - xBarMin
                                     const xBarMargin = Math.max(xBarRange * 0.1, 1)
-                                    return xBarMin - xBarMargin
+                                    return Number((xBarMin - xBarMargin).toFixed(2))
                                   },
                                   (dataMax) => {
                                     const xBarMin = Math.min(...xrData.xBar, xrData.lclX)
                                     const xBarMax = Math.max(...xrData.xBar, xrData.uclX)
                                     const xBarRange = xBarMax - xBarMin
                                     const xBarMargin = Math.max(xBarRange * 0.1, 1)
-                                    return xBarMax + xBarMargin
+                                    return Number((xBarMax + xBarMargin).toFixed(2))
                                   },
                                 ]}
                               />
-                              <Tooltip />
+                              <Tooltip formatter={(value, name) => [Number(value).toFixed(2), name]} />
                               <Line type="monotone" dataKey="value" stroke="#2563eb" strokeWidth={2} />
-                              <Line type="monotone" dataKey="ucl" stroke="#dc2626" strokeDasharray="5 5" />
-                              <Line type="monotone" dataKey="lcl" stroke="#dc2626" strokeDasharray="5 5" />
-                              <Line type="monotone" dataKey="center" stroke="#16a34a" strokeDasharray="3 3" />
+                              <Line type="monotone" dataKey="LCS" stroke="#dc2626" strokeDasharray="5 5" />
+                              <Line type="monotone" dataKey="LCI" stroke="#dc2626" strokeDasharray="5 5" />
+                              <Line type="monotone" dataKey="LC" stroke="#16a34a" strokeDasharray="3 3" />
                             </LineChart>
                           )}
                           {activeChart === "r" && xrData && (
                             <LineChart
                               data={xrData.rValues.map((val, index) => ({
                                 subgroup: index + 1,
-                                value: val,
-                                ucl: xrData.uclR,
-                                lcl: xrData.lclR,
-                                center: xrData.rBar,
+                                value: Number(val.toFixed(2)),
+                                LCS: Number(xrData.uclR.toFixed(2)),
+                                LCI: Number(xrData.lclR.toFixed(2)),
+                                LC: Number(xrData.rBar.toFixed(2)),
                               }))}
                             >
                               <CartesianGrid strokeDasharray="3 3" />
@@ -1639,22 +1631,22 @@ export default function Component() {
                                     const rMax = Math.max(...xrData.rValues, xrData.uclR)
                                     const rRange = rMax - rMin
                                     const rMargin = Math.max(rRange * 0.1, 1)
-                                    return rMin - rMargin
+                                    return Number((rMin - rMargin).toFixed(2))
                                   },
                                   (dataMax) => {
                                     const rMin = Math.min(...xrData.rValues, xrData.lclR)
                                     const rMax = Math.max(...xrData.rValues, xrData.uclR)
                                     const rRange = rMax - rMin
                                     const rMargin = Math.max(rRange * 0.1, 1)
-                                    return rMax + rMargin
+                                    return Number((rMax + rMargin).toFixed(2))
                                   },
                                 ]}
                               />
-                              <Tooltip />
+                              <Tooltip formatter={(value, name) => [Number(value).toFixed(2), name]} />
                               <Line type="monotone" dataKey="value" stroke="#2563eb" strokeWidth={2} />
-                              <Line type="monotone" dataKey="ucl" stroke="#dc2626" strokeDasharray="5 5" />
-                              <Line type="monotone" dataKey="lcl" stroke="#dc2626" strokeDasharray="5 5" />
-                              <Line type="monotone" dataKey="center" stroke="#16a34a" strokeDasharray="3 3" />
+                              <Line type="monotone" dataKey="LCS" stroke="#dc2626" strokeDasharray="5 5" />
+                              <Line type="monotone" dataKey="LCI" stroke="#dc2626" strokeDasharray="5 5" />
+                              <Line type="monotone" dataKey="LC" stroke="#16a34a" strokeDasharray="3 3" />
                             </LineChart>
                           )}
                           {activeChart === "boxplot" &&
