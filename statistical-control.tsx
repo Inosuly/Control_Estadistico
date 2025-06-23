@@ -125,7 +125,7 @@ export default function Component() {
       if (dataType === "xr-charts") {
         // Process X-R table data for preview
         const validSubgroups = xrTableData
-          .filter((row) => row.some((val) => !isNaN(val) && val !== 0))
+          .filter((row) => Array.isArray(row) && row.some((val) => !isNaN(val) && val !== 0))
           .map((row) => row.filter((val) => !isNaN(val)))
 
         if (validSubgroups.length === 0) {
@@ -206,18 +206,25 @@ export default function Component() {
   }
 
   const calculateXRData = (subgroups: number[][]) => {
-    if (subgroups.length === 0) return
+    if (!Array.isArray(subgroups) || subgroups.length === 0) return
 
     // Calcular medias y rangos
-    const xBar = subgroups.map((subgroup) => subgroup.reduce((sum, val) => sum + val, 0) / subgroup.length)
-    const rValues = subgroups.map((subgroup) => Math.max(...subgroup) - Math.min(...subgroup))
+    const xBar = subgroups.map((subgroup) => {
+      if (!Array.isArray(subgroup) || subgroup.length === 0) return 0
+      return subgroup.reduce((sum, val) => sum + val, 0) / subgroup.length
+    })
+
+    const rValues = subgroups.map((subgroup) => {
+      if (!Array.isArray(subgroup) || subgroup.length === 0) return 0
+      return Math.max(...subgroup) - Math.min(...subgroup)
+    })
 
     // Calcular límites de control
     const xBarBar = xBar.reduce((sum, val) => sum + val, 0) / xBar.length
     const rBar = rValues.reduce((sum, val) => sum + val, 0) / rValues.length
 
     // Factores para límites de control (para diferentes tamaños de subgrupo)
-    const n = subgroups[0].length
+    const n = subgroups[0]?.length || 5
     const factors: { [key: number]: { A2: number; D3: number; D4: number } } = {
       2: { A2: 1.88, D3: 0, D4: 3.267 },
       3: { A2: 1.023, D3: 0, D4: 2.574 },
@@ -250,7 +257,7 @@ export default function Component() {
   }
 
   const calculateBoxPlotData = (): BoxPlotData => {
-    if (processedData.length === 0)
+    if (!Array.isArray(processedData) || processedData.length === 0)
       return {
         min: 0,
         q1: 0,
@@ -372,7 +379,7 @@ export default function Component() {
 
         // Procesar automáticamente los datos X-R
         const validSubgroups = normalizedData
-          .filter((row) => row.some((val) => !isNaN(val) && val !== 0))
+          .filter((row) => Array.isArray(row) && row.some((val) => !isNaN(val) && val !== 0))
           .map((row) => row.filter((val) => !isNaN(val)))
 
         if (validSubgroups.length > 0) {
@@ -443,11 +450,11 @@ export default function Component() {
     if (dataType === "xr-charts" && xrTableData.length === 0) {
       initializeXRTable()
     }
-  }, [dataType])
+  }, [dataType, xrCols, xrRows])
 
   // Calcular tabla de frecuencias
   const frequencyTable = useMemo((): FrequencyData[] => {
-    if (processedData.length === 0) return []
+    if (!Array.isArray(processedData) || processedData.length === 0) return []
 
     const frequencyMap = new Map<number, number>()
     processedData.forEach((value) => {
@@ -477,7 +484,8 @@ export default function Component() {
 
   // Calcular tabla de frecuencias agrupadas
   const groupedFrequencyTable = useMemo((): GroupedFrequencyData[] => {
-    if (processedData.length === 0 || !groupedStats || dataType !== "grouped") return []
+    if (!Array.isArray(processedData) || processedData.length === 0 || !groupedStats || dataType !== "grouped")
+      return []
 
     const { minValue, maxValue, numberOfClasses } = groupedStats
     const total = processedData.length
@@ -539,7 +547,7 @@ export default function Component() {
 
   // Calcular estadísticas incluyendo skewness y kurtosis
   const statistics = useMemo((): Statistics => {
-    if (processedData.length === 0)
+    if (!Array.isArray(processedData) || processedData.length === 0)
       return {
         mean: 0,
         median: 0,
@@ -599,34 +607,46 @@ export default function Component() {
     }
   }, [processedData, sampleType])
 
-  // Datos para gráficas
-  const chartData = frequencyTable.map((item) => ({
-    value: item.value.toString(),
-    frequency: item.frequency,
-    relativeFreq: item.relativeFreq,
-    cumulativeFreq: item.cumulativeFreq,
-    cumulativeRelativeFreq: item.cumulativeRelativeFreq,
-  }))
+  // Datos para gráficas con validación
+  const chartData = useMemo(() => {
+    if (!Array.isArray(frequencyTable)) return []
+    return frequencyTable.map((item) => ({
+      value: item?.value?.toString() || "",
+      frequency: item?.frequency || 0,
+      relativeFreq: item?.relativeFreq || 0,
+      cumulativeFreq: item?.cumulativeFreq || 0,
+      cumulativeRelativeFreq: item?.cumulativeRelativeFreq || 0,
+    }))
+  }, [frequencyTable])
 
-  const groupedChartData = groupedFrequencyTable.map((item) => ({
-    class: item.class,
-    frequency: item.frequency,
-    relativeFreq: item.relativeFreq,
-    cumulativeFreq: item.cumulativeFreq,
-    cumulativeRelativeFreq: item.cumulativeRelativeFreq,
-  }))
+  const groupedChartData = useMemo(() => {
+    if (!Array.isArray(groupedFrequencyTable)) return []
+    return groupedFrequencyTable.map((item) => ({
+      class: item?.class || "",
+      frequency: item?.frequency || 0,
+      relativeFreq: item?.relativeFreq || 0,
+      cumulativeFreq: item?.cumulativeFreq || 0,
+      cumulativeRelativeFreq: item?.cumulativeRelativeFreq || 0,
+    }))
+  }, [groupedFrequencyTable])
 
-  const groupedPieData = groupedFrequencyTable.map((item, index) => ({
-    name: item.class,
-    value: item.frequency,
-    fill: `hsl(${(index * 360) / groupedFrequencyTable.length}, 70%, 50%)`,
-  }))
+  const groupedPieData = useMemo(() => {
+    if (!Array.isArray(groupedFrequencyTable)) return []
+    return groupedFrequencyTable.map((item, index) => ({
+      name: item?.class || `${index + 1}`,
+      value: item?.frequency || 0,
+      fill: `hsl(${(index * 360) / groupedFrequencyTable.length}, 70%, 50%)`,
+    }))
+  }, [groupedFrequencyTable])
 
-  const pieData = frequencyTable.map((item, index) => ({
-    name: item.value.toString(),
-    value: item.frequency,
-    fill: `hsl(${(index * 360) / frequencyTable.length}, 70%, 50%)`,
-  }))
+  const pieData = useMemo(() => {
+    if (!Array.isArray(frequencyTable)) return []
+    return frequencyTable.map((item, index) => ({
+      name: item?.value?.toString() || `${index}`,
+      value: item?.frequency || 0,
+      fill: `hsl(${(index * 360) / frequencyTable.length}, 70%, 50%)`,
+    }))
+  }, [frequencyTable])
 
   const resetData = () => {
     setInputData("")
@@ -765,7 +785,7 @@ export default function Component() {
                     </div>
 
                     {/* Excel Preview Table */}
-                    {showExcelPreview && xrTableData.length > 0 && (
+                    {showExcelPreview && Array.isArray(xrTableData) && xrTableData.length > 0 && (
                       <div className="space-y-2">
                         <h4 className="font-semibold text-sm sm:text-base">Vista previa de datos importados:</h4>
                         <div className="overflow-x-auto border rounded-lg max-h-64">
@@ -786,11 +806,12 @@ export default function Component() {
                                   <td className="p-1 sm:p-2 border-r font-medium bg-gray-50 text-center text-xs sm:text-sm">
                                     {rowIndex + 1}
                                   </td>
-                                  {row.map((cell, colIndex) => (
-                                    <td key={colIndex} className="p-1 sm:p-2 border-r text-center text-xs sm:text-sm">
-                                      {cell}
-                                    </td>
-                                  ))}
+                                  {Array.isArray(row) &&
+                                    row.map((cell, colIndex) => (
+                                      <td key={colIndex} className="p-1 sm:p-2 border-r text-center text-xs sm:text-sm">
+                                        {cell || 0}
+                                      </td>
+                                    ))}
                                 </tr>
                               ))}
                             </tbody>
@@ -936,7 +957,7 @@ export default function Component() {
               </CardDescription>
             </CardHeader>
             <CardContent className="p-4 sm:p-6">
-              {dataType === "xr-charts" ? (
+              {dataType === "xr-charts" && Array.isArray(previewXRData) && previewXRData.length > 0 ? (
                 // X-R Data Preview
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
@@ -946,13 +967,16 @@ export default function Component() {
                     </div>
                     <div className="text-center p-3 sm:p-4 bg-green-50 rounded-lg">
                       <div className="text-lg sm:text-2xl font-bold text-green-600">
-                        {previewXRData.length > 0 ? previewXRData[0].length : 0}
+                        {previewXRData.length > 0 && Array.isArray(previewXRData[0]) ? previewXRData[0].length : 0}
                       </div>
                       <div className="text-xs sm:text-sm text-gray-600">Observaciones por Subgrupo</div>
                     </div>
                     <div className="text-center p-3 sm:p-4 bg-purple-50 rounded-lg">
                       <div className="text-lg sm:text-2xl font-bold text-purple-600">
-                        {previewXRData.reduce((sum, subgroup) => sum + subgroup.length, 0)}
+                        {previewXRData.reduce(
+                          (sum, subgroup) => sum + (Array.isArray(subgroup) ? subgroup.length : 0),
+                          0,
+                        )}
                       </div>
                       <div className="text-xs sm:text-sm text-gray-600">Total de Datos</div>
                     </div>
@@ -973,11 +997,14 @@ export default function Component() {
                       <thead>
                         <tr className="bg-gray-50">
                           <th className="p-1 sm:p-2 border-r font-medium text-xs sm:text-sm">Subgrupo</th>
-                          {Array.from({ length: Math.max(...previewXRData.map((row) => row.length)) }, (_, i) => (
-                            <th key={i} className="p-1 sm:p-2 border-r font-medium text-xs sm:text-sm">
-                              X{i + 1}
-                            </th>
-                          ))}
+                          {Array.from(
+                            { length: Math.max(...previewXRData.map((row) => (Array.isArray(row) ? row.length : 0))) },
+                            (_, i) => (
+                              <th key={i} className="p-1 sm:p-2 border-r font-medium text-xs sm:text-sm">
+                                X{i + 1}
+                              </th>
+                            ),
+                          )}
                         </tr>
                       </thead>
                       <tbody>
@@ -986,11 +1013,12 @@ export default function Component() {
                             <td className="p-1 sm:p-2 border-r font-medium bg-gray-50 text-center text-xs sm:text-sm">
                               {rowIndex + 1}
                             </td>
-                            {row.map((cell, colIndex) => (
-                              <td key={colIndex} className="p-1 sm:p-2 border-r text-center text-xs sm:text-sm">
-                                {cell}
-                              </td>
-                            ))}
+                            {Array.isArray(row) &&
+                              row.map((cell, colIndex) => (
+                                <td key={colIndex} className="p-1 sm:p-2 border-r text-center text-xs sm:text-sm">
+                                  {cell || 0}
+                                </td>
+                              ))}
                           </tr>
                         ))}
                       </tbody>
@@ -1052,27 +1080,38 @@ export default function Component() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {xrData.subgroups.map((_, index) => (
-                            <TableRow key={index}>
-                              <TableCell className="font-medium text-xs sm:text-sm">{index + 1}</TableCell>
-                              {/* X Chart Data */}
-                              <TableCell className="text-xs sm:text-sm bg-blue-50">
-                                {xrData.xBar[index].toFixed(5)}
-                              </TableCell>
-                              <TableCell className="text-xs sm:text-sm bg-blue-50">
-                                {xrData.xBarBar.toFixed(5)}
-                              </TableCell>
-                              <TableCell className="text-xs sm:text-sm bg-blue-50">{xrData.uclX.toFixed(5)}</TableCell>
-                              <TableCell className="text-xs sm:text-sm bg-blue-50">{xrData.lclX.toFixed(5)}</TableCell>
-                              {/* R Chart Data */}
-                              <TableCell className="text-xs sm:text-sm bg-green-50">
-                                {xrData.rValues[index].toFixed(5)}
-                              </TableCell>
-                              <TableCell className="text-xs sm:text-sm bg-green-50">{xrData.rBar.toFixed(5)}</TableCell>
-                              <TableCell className="text-xs sm:text-sm bg-green-50">{xrData.uclR.toFixed(5)}</TableCell>
-                              <TableCell className="text-xs sm:text-sm bg-green-50">{xrData.lclR.toFixed(5)}</TableCell>
-                            </TableRow>
-                          ))}
+                          {Array.isArray(xrData.subgroups) &&
+                            xrData.subgroups.map((_, index) => (
+                              <TableRow key={index}>
+                                <TableCell className="font-medium text-xs sm:text-sm">{index + 1}</TableCell>
+                                {/* X Chart Data */}
+                                <TableCell className="text-xs sm:text-sm bg-blue-50">
+                                  {xrData.xBar[index]?.toFixed(5) || "0.00000"}
+                                </TableCell>
+                                <TableCell className="text-xs sm:text-sm bg-blue-50">
+                                  {xrData.xBarBar.toFixed(5)}
+                                </TableCell>
+                                <TableCell className="text-xs sm:text-sm bg-blue-50">
+                                  {xrData.uclX.toFixed(5)}
+                                </TableCell>
+                                <TableCell className="text-xs sm:text-sm bg-blue-50">
+                                  {xrData.lclX.toFixed(5)}
+                                </TableCell>
+                                {/* R Chart Data */}
+                                <TableCell className="text-xs sm:text-sm bg-green-50">
+                                  {xrData.rValues[index]?.toFixed(5) || "0.00000"}
+                                </TableCell>
+                                <TableCell className="text-xs sm:text-sm bg-green-50">
+                                  {xrData.rBar.toFixed(5)}
+                                </TableCell>
+                                <TableCell className="text-xs sm:text-sm bg-green-50">
+                                  {xrData.uclR.toFixed(5)}
+                                </TableCell>
+                                <TableCell className="text-xs sm:text-sm bg-green-50">
+                                  {xrData.lclR.toFixed(5)}
+                                </TableCell>
+                              </TableRow>
+                            ))}
                         </TableBody>
                       </Table>
                     </div>
@@ -1153,7 +1192,9 @@ export default function Component() {
                       </div>
                       <div className="text-center p-3 sm:p-4 bg-purple-50 rounded-lg">
                         <div className="text-lg sm:text-2xl font-bold text-purple-600">
-                          {statistics.mode.length === 1 ? statistics.mode[0] : "Múltiple"}
+                          {Array.isArray(statistics.mode) && statistics.mode.length === 1
+                            ? statistics.mode[0]
+                            : "Múltiple"}
                         </div>
                         <div className="text-xs sm:text-sm text-gray-600">Moda</div>
                       </div>
@@ -1178,7 +1219,7 @@ export default function Component() {
                       </div>
                     </div>
 
-                    {statistics.mode.length > 1 && (
+                    {Array.isArray(statistics.mode) && statistics.mode.length > 1 && (
                       <div className="mt-4 p-3 bg-gray-50 rounded-lg">
                         <strong className="text-sm sm:text-base">Modas:</strong>{" "}
                         <span className="text-sm sm:text-base">{statistics.mode.join(", ")}</span>
@@ -1219,15 +1260,18 @@ export default function Component() {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {frequencyTable.map((row, index) => (
-                              <TableRow key={index}>
-                                <TableCell className="font-medium text-xs sm:text-sm">{row.value}</TableCell>
-                                <TableCell className="text-xs sm:text-sm">{row.frequency}</TableCell>
-                                <TableCell className="text-xs sm:text-sm">{row.relativeFreq}%</TableCell>
-                                <TableCell className="text-xs sm:text-sm">{row.cumulativeFreq}</TableCell>
-                                <TableCell className="text-xs sm:text-sm">{row.cumulativeRelativeFreq}%</TableCell>
-                              </TableRow>
-                            ))}
+                            {Array.isArray(frequencyTable) &&
+                              frequencyTable.map((row, index) => (
+                                <TableRow key={index}>
+                                  <TableCell className="font-medium text-xs sm:text-sm">{row?.value || 0}</TableCell>
+                                  <TableCell className="text-xs sm:text-sm">{row?.frequency || 0}</TableCell>
+                                  <TableCell className="text-xs sm:text-sm">{row?.relativeFreq || 0}%</TableCell>
+                                  <TableCell className="text-xs sm:text-sm">{row?.cumulativeFreq || 0}</TableCell>
+                                  <TableCell className="text-xs sm:text-sm">
+                                    {row?.cumulativeRelativeFreq || 0}%
+                                  </TableCell>
+                                </TableRow>
+                              ))}
                           </TableBody>
                         </Table>
                       ) : (
@@ -1245,18 +1289,21 @@ export default function Component() {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {groupedFrequencyTable.map((row, index) => (
-                              <TableRow key={index}>
-                                <TableCell className="font-medium text-xs sm:text-sm">{row.class}</TableCell>
-                                <TableCell className="text-xs sm:text-sm">{row.lowerLimit}</TableCell>
-                                <TableCell className="text-xs sm:text-sm">{row.upperLimit}</TableCell>
-                                <TableCell className="text-xs sm:text-sm">{row.classmark}</TableCell>
-                                <TableCell className="text-xs sm:text-sm">{row.frequency}</TableCell>
-                                <TableCell className="text-xs sm:text-sm">{row.relativeFreq}%</TableCell>
-                                <TableCell className="text-xs sm:text-sm">{row.cumulativeFreq}</TableCell>
-                                <TableCell className="text-xs sm:text-sm">{row.cumulativeRelativeFreq}%</TableCell>
-                              </TableRow>
-                            ))}
+                            {Array.isArray(groupedFrequencyTable) &&
+                              groupedFrequencyTable.map((row, index) => (
+                                <TableRow key={index}>
+                                  <TableCell className="font-medium text-xs sm:text-sm">{row?.class || ""}</TableCell>
+                                  <TableCell className="text-xs sm:text-sm">{row?.lowerLimit || 0}</TableCell>
+                                  <TableCell className="text-xs sm:text-sm">{row?.upperLimit || 0}</TableCell>
+                                  <TableCell className="text-xs sm:text-sm">{row?.classmark || 0}</TableCell>
+                                  <TableCell className="text-xs sm:text-sm">{row?.frequency || 0}</TableCell>
+                                  <TableCell className="text-xs sm:text-sm">{row?.relativeFreq || 0}%</TableCell>
+                                  <TableCell className="text-xs sm:text-sm">{row?.cumulativeFreq || 0}</TableCell>
+                                  <TableCell className="text-xs sm:text-sm">
+                                    {row?.cumulativeRelativeFreq || 0}%
+                                  </TableCell>
+                                </TableRow>
+                              ))}
                           </TableBody>
                         </Table>
                       )}
@@ -1388,7 +1435,7 @@ export default function Component() {
                 </CardHeader>
                 <CardContent className="p-4 sm:p-6">
                   <div className={activeChart === "xyr" ? "space-y-6" : ""}>
-                    {activeChart === "xyr" && xrData ? (
+                    {activeChart === "xyr" && xrData && Array.isArray(xrData.xBar) && Array.isArray(xrData.rValues) ? (
                       // Combined X and R charts with proper sections
                       <div className="space-y-8">
                         <div>
@@ -1398,7 +1445,7 @@ export default function Component() {
                               <LineChart
                                 data={xrData.xBar.map((val, index) => ({
                                   subgroup: index + 1,
-                                  value: Number(val.toFixed(2)),
+                                  value: Number((val || 0).toFixed(2)),
                                   LCS: Number(xrData.uclX.toFixed(2)),
                                   LCI: Number(xrData.lclX.toFixed(2)),
                                   LC: Number(xrData.xBarBar.toFixed(2)),
@@ -1440,7 +1487,7 @@ export default function Component() {
                               <LineChart
                                 data={xrData.rValues.map((val, index) => ({
                                   subgroup: index + 1,
-                                  value: Number(val.toFixed(2)),
+                                  value: Number((val || 0).toFixed(2)),
                                   LCS: Number(xrData.uclR.toFixed(2)),
                                   LCI: Number(xrData.lclR.toFixed(2)),
                                   LC: Number(xrData.rBar.toFixed(2)),
@@ -1480,7 +1527,7 @@ export default function Component() {
                       // Single chart with proper height
                       <div className="h-64 sm:h-80">
                         <ResponsiveContainer width="100%" height="100%">
-                          {activeChart === "frequency" && (
+                          {activeChart === "frequency" && Array.isArray(chartData) && (
                             <BarChart data={dataType === "grouped" ? groupedChartData : chartData}>
                               <CartesianGrid strokeDasharray="3 3" />
                               <XAxis dataKey={dataType === "grouped" ? "class" : "value"} />
@@ -1489,7 +1536,7 @@ export default function Component() {
                               <Bar dataKey="frequency" fill="#3b82f6" />
                             </BarChart>
                           )}
-                          {activeChart === "relative" && (
+                          {activeChart === "relative" && Array.isArray(chartData) && (
                             <BarChart data={dataType === "grouped" ? groupedChartData : chartData}>
                               <CartesianGrid strokeDasharray="3 3" />
                               <XAxis dataKey={dataType === "grouped" ? "class" : "value"} />
@@ -1498,7 +1545,7 @@ export default function Component() {
                               <Bar dataKey="relativeFreq" fill="#10b981" />
                             </BarChart>
                           )}
-                          {activeChart === "cumulative" && (
+                          {activeChart === "cumulative" && Array.isArray(chartData) && (
                             <LineChart data={dataType === "grouped" ? groupedChartData : chartData}>
                               <CartesianGrid strokeDasharray="3 3" />
                               <XAxis dataKey={dataType === "grouped" ? "class" : "value"} />
@@ -1507,7 +1554,7 @@ export default function Component() {
                               <Line type="monotone" dataKey="cumulativeFreq" stroke="#f59e0b" strokeWidth={3} />
                             </LineChart>
                           )}
-                          {activeChart === "cumulative-bar" && (
+                          {activeChart === "cumulative-bar" && Array.isArray(chartData) && (
                             <BarChart data={dataType === "grouped" ? groupedChartData : chartData}>
                               <CartesianGrid strokeDasharray="3 3" />
                               <XAxis dataKey={dataType === "grouped" ? "class" : "value"} />
@@ -1516,7 +1563,7 @@ export default function Component() {
                               <Bar dataKey="cumulativeFreq" fill="#f59e0b" />
                             </BarChart>
                           )}
-                          {activeChart === "cumulative-relative-bar" && (
+                          {activeChart === "cumulative-relative-bar" && Array.isArray(chartData) && (
                             <BarChart data={dataType === "grouped" ? groupedChartData : chartData}>
                               <CartesianGrid strokeDasharray="3 3" />
                               <XAxis dataKey={dataType === "grouped" ? "class" : "value"} />
@@ -1525,7 +1572,7 @@ export default function Component() {
                               <Bar dataKey="cumulativeRelativeFreq" fill="#8b5cf6" />
                             </BarChart>
                           )}
-                          {activeChart === "pie" && (
+                          {activeChart === "pie" && Array.isArray(pieData) && (
                             <PieChart>
                               <Pie
                                 data={dataType === "grouped" ? groupedPieData : pieData}
@@ -1538,13 +1585,13 @@ export default function Component() {
                                 dataKey="value"
                               >
                                 {(dataType === "grouped" ? groupedPieData : pieData).map((entry, index) => (
-                                  <Cell key={`cell-${index}`} fill={entry.fill} />
+                                  <Cell key={`cell-${index}`} fill={entry?.fill || "#8884d8"} />
                                 ))}
                               </Pie>
                               <Tooltip />
                             </PieChart>
                           )}
-                          {activeChart === "skewness" && (
+                          {activeChart === "skewness" && Array.isArray(chartData) && (
                             <AreaChart data={chartData}>
                               <CartesianGrid strokeDasharray="3 3" />
                               <XAxis dataKey="value" />
@@ -1561,7 +1608,7 @@ export default function Component() {
                               />
                             </AreaChart>
                           )}
-                          {activeChart === "kurtosis" && (
+                          {activeChart === "kurtosis" && Array.isArray(chartData) && (
                             <BarChart data={chartData}>
                               <CartesianGrid strokeDasharray="3 3" />
                               <XAxis dataKey="value" />
@@ -1575,11 +1622,11 @@ export default function Component() {
                               />
                             </BarChart>
                           )}
-                          {activeChart === "xbar" && xrData && (
+                          {activeChart === "xbar" && xrData && Array.isArray(xrData.xBar) && (
                             <LineChart
                               data={xrData.xBar.map((val, index) => ({
                                 subgroup: index + 1,
-                                value: Number(val.toFixed(2)),
+                                value: Number((val || 0).toFixed(2)),
                                 LCS: Number(xrData.uclX.toFixed(2)),
                                 LCI: Number(xrData.lclX.toFixed(2)),
                                 LC: Number(xrData.xBarBar.toFixed(2)),
@@ -1612,11 +1659,11 @@ export default function Component() {
                               <Line type="monotone" dataKey="LC" stroke="#16a34a" strokeDasharray="3 3" />
                             </LineChart>
                           )}
-                          {activeChart === "r" && xrData && (
+                          {activeChart === "r" && xrData && Array.isArray(xrData.rValues) && (
                             <LineChart
                               data={xrData.rValues.map((val, index) => ({
                                 subgroup: index + 1,
-                                value: Number(val.toFixed(2)),
+                                value: Number((val || 0).toFixed(2)),
                                 LCS: Number(xrData.uclR.toFixed(2)),
                                 LCI: Number(xrData.lclR.toFixed(2)),
                                 LC: Number(xrData.rBar.toFixed(2)),
@@ -1765,17 +1812,18 @@ export default function Component() {
                                           </text>
                                         </g>
                                       ))}
-                                      {boxData.outliers.map((outlier, index) => (
-                                        <circle
-                                          key={index}
-                                          cx={getX(outlier)}
-                                          cy={whiskerY}
-                                          r="4"
-                                          fill="#dc2626"
-                                          stroke="#dc2626"
-                                          strokeWidth="1"
-                                        />
-                                      ))}
+                                      {Array.isArray(boxData.outliers) &&
+                                        boxData.outliers.map((outlier, index) => (
+                                          <circle
+                                            key={index}
+                                            cx={getX(outlier)}
+                                            cy={whiskerY}
+                                            r="4"
+                                            fill="#dc2626"
+                                            stroke="#dc2626"
+                                            strokeWidth="1"
+                                          />
+                                        ))}
                                     </svg>
                                   </div>
                                   <div className="mt-4 p-4 bg-gray-50 rounded-lg">
@@ -1786,14 +1834,16 @@ export default function Component() {
                                       </div>
                                       <div className="text-center">
                                         <div className="font-semibold">Valores Atípicos</div>
-                                        <div className="text-red-600">{boxData.outliers.length}</div>
+                                        <div className="text-red-600">
+                                          {Array.isArray(boxData.outliers) ? boxData.outliers.length : 0}
+                                        </div>
                                       </div>
                                       <div className="text-center">
                                         <div className="font-semibold">Rango Total</div>
                                         <div className="text-green-600">{(boxData.max - boxData.min).toFixed(3)}</div>
                                       </div>
                                     </div>
-                                    {boxData.outliers.length > 0 && (
+                                    {Array.isArray(boxData.outliers) && boxData.outliers.length > 0 && (
                                       <div className="mt-2 text-xs text-gray-600">
                                         <strong>Outliers:</strong>{" "}
                                         {boxData.outliers.map((o) => o.toFixed(2)).join(", ")}
