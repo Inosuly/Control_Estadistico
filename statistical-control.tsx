@@ -610,42 +610,50 @@ export default function Component() {
   // Datos para gráficas con validación
   const chartData = useMemo(() => {
     if (!Array.isArray(frequencyTable)) return []
-    return frequencyTable.map((item) => ({
-      value: item?.value?.toString() || "",
-      frequency: item?.frequency || 0,
-      relativeFreq: item?.relativeFreq || 0,
-      cumulativeFreq: item?.cumulativeFreq || 0,
-      cumulativeRelativeFreq: item?.cumulativeRelativeFreq || 0,
-    }))
+    return frequencyTable
+      .filter(item => item != null)
+      .map((item) => ({
+        value: item.value?.toString() || "",
+        frequency: item.frequency || 0,
+        relativeFreq: item.relativeFreq || 0,
+        cumulativeFreq: item.cumulativeFreq || 0,
+        cumulativeRelativeFreq: item.cumulativeRelativeFreq || 0,
+      }))
   }, [frequencyTable])
 
   const groupedChartData = useMemo(() => {
     if (!Array.isArray(groupedFrequencyTable)) return []
-    return groupedFrequencyTable.map((item) => ({
-      class: item?.class || "",
-      frequency: item?.frequency || 0,
-      relativeFreq: item?.relativeFreq || 0,
-      cumulativeFreq: item?.cumulativeFreq || 0,
-      cumulativeRelativeFreq: item?.cumulativeRelativeFreq || 0,
-    }))
+    return groupedFrequencyTable
+      .filter(item => item != null)
+      .map((item) => ({
+        class: item.class || "",
+        frequency: item.frequency || 0,
+        relativeFreq: item.relativeFreq || 0,
+        cumulativeFreq: item.cumulativeFreq || 0,
+        cumulativeRelativeFreq: item.cumulativeRelativeFreq || 0,
+      }))
   }, [groupedFrequencyTable])
 
   const groupedPieData = useMemo(() => {
     if (!Array.isArray(groupedFrequencyTable)) return []
-    return groupedFrequencyTable.map((item, index) => ({
-      name: item?.class || `${index + 1}`,
-      value: item?.frequency || 0,
-      fill: `hsl(${(index * 360) / groupedFrequencyTable.length}, 70%, 50%)`,
-    }))
+    return groupedFrequencyTable
+      .filter(item => item != null) // Filter out null items
+      .map((item, index) => ({
+        name: item.class || `${index + 1}`,
+        value: item.frequency || 0,
+        fill: `hsl(${(index * 360) / groupedFrequencyTable.length}, 70%, 50%)`,
+      }))
   }, [groupedFrequencyTable])
 
   const pieData = useMemo(() => {
     if (!Array.isArray(frequencyTable)) return []
-    return frequencyTable.map((item, index) => ({
-      name: item?.value?.toString() || `${index}`,
-      value: item?.frequency || 0,
-      fill: `hsl(${(index * 360) / frequencyTable.length}, 70%, 50%)`,
-    }))
+    return frequencyTable
+      .filter(item => item != null) // Filter out null items
+      .map((item, index) => ({
+        name: item.value?.toString() || `${index}`,
+        value: item.frequency || 0,
+        fill: `hsl(${(index * 360) / frequencyTable.length}, 70%, 50%)`,
+      }))
   }, [frequencyTable])
 
   const resetData = () => {
