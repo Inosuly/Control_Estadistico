@@ -489,7 +489,7 @@ export default function Component() {
     processedData.length === 0 || 
     !groupedStats || 
     dataType !== "grouped" ||
-    groupedStats.numberOfClasses <= 0 // Añadir esta validación
+    groupedStats.numberOfClasses <= 0
   ) return [];
 
     const { minValue, maxValue, numberOfClasses } = groupedStats
